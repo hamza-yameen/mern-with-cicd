@@ -60,12 +60,13 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
         run: |
           sudo apt-get update -y
-          sudo apt-get install sshpass
-          sudo sshpass -p $SSH_PASSWORD ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST '
-          sudo docker pull yamee/app-server &&
-          cd /home/cybergen/app &&
-          sudo docker compose up -d --no-deps --build client  && exit
-          '
+          sudo apt-get install -y sshpass
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no "$SSH_USERNAME@$SSH_HOST" << 'EOF'
+            sudo docker pull yamee/app-client &&
+            cd /home/cybergen/app &&
+            sudo docker compose up -d --no-deps --build client
+            exit
+          EOF
 
   server:
     needs: check-changes
