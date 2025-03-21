@@ -39,6 +39,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Creating Docker Image
+        run: |
+          cd client
+          docker build -t yamee/app-client .
+
+      - name: Pushing Docker Image
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker push yamee/app-client
+          docker logout
+
+      - name: SSH login and Deploy
+        env:
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install sshpass
+          sudo sshpass -p $SSH_PASSWORD ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST '
+          sudo docker pull yamee/app-client &&
+          cd /home/cybergen/app &&
+          sudo docker compose up -d --no-deps --build client  && exit
+          '
+
   server:
     needs: check-changes
     runs-on: ubuntu-latest
@@ -46,3 +74,31 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Creating Docker Image
+        run: |
+          cd server
+          docker build -t yamee/app-server .
+
+      - name: Pushing Docker Image
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+          docker push yamee/app-server
+          docker logout
+
+      - name: SSH login and Deploy
+        env:
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install sshpass
+          sudo sshpass -p $SSH_PASSWORD ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST '
+          sudo docker pull yamee/app-server &&
+          cd /home/cybergen/app &&
+          sudo docker compose up -d --no-deps --build server  && exit
+          '
